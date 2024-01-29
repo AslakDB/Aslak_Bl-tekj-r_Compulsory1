@@ -2,9 +2,12 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <cmath>
+#include <glm/glm.hpp>
 #include <fstream>
 #include <gl/GL.h>
-
+#include <vector>
+#include "Shaders.h"
+#include "OpenGlSettup.h"
 
 using namespace std;
 
@@ -13,8 +16,10 @@ void processInput(GLFWwindow *window);
 // Task 1--------------------------------------------------------------------
 double f(double x)
 {
-    return x * x * x - 9 * x * x + 23 * x - 15;
+    return x *x * x - 3*x*x;
 }
+
+
 
 double fDerivative(double x)
 {
@@ -46,28 +51,11 @@ void CreateDataFile()
 
     file.close();
 }
-void DrawGraph()
+void DrawGraph(GLuint shaderProgram, GLuint vbo, GLuint VAO, GLint posAttrib)
 {
-    double a = 0.0f;
-    double b = 10.0f;
-    
-    int n = 100;
-    
-    double h = (b - a) / n;
-    
-
-
-    for (int i = 0; i <= n; ++i)
-    {
-        double x = a + i * h;
-        double y = f(x);
-        
-        double yDerivative = fDerivative(x);
-        string color = yDerivative > 0 ? "red" : "blue";
-        double vertecies[n] = { y};
-        glDrawArrays( GL_LINE_STRIP,0, vertecies[n]);
-    }
+   
 }
+
 // Task 2--------------------------------------------------------------------
 
 double x(double t)
@@ -107,7 +95,10 @@ void CreateSpiral()
     
         file.close();
 }
-
+void DrawSpiral()
+{
+    
+}
 // Task 3--------------------------------------------------------------------
 double g(double x, double y) {
     return x * x + y * y ;
@@ -131,66 +122,128 @@ void CreatePlane()
 
     file.close();
 }
+int n;
+
+struct vertex 
+{
+   double x, y, z;
+};
+
+
+vector <vertex> vertices(int start,int end, float distance)
+{
+    vector <vertex> vertices;
+    for (int i = start; i < end; i+= distance)
+    {
+        vertex vertex;
+        vertex.x = i;
+        vertex.y = f(i);
+        vertex.z = 0;
+        vertices.push_back(vertex);
+    }
+    return vertices;
+}
 int main(int argc, char* argv[])
 {
-//---------------------------------------------------------------------Setup of OpenGl and glad
-    int width= 800, height = 600;
     
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+//settup contructor
+    Settup settup(2560 / 2, 1440 / 2, "Compulsory1");
+    
+    
+    double a = 0.0f;
+    double b = 100.0f;
 
-    GLFWwindow* window = glfwCreateWindow(width, height, "LearnOpenGL", NULL, NULL);
-    if (window == NULL)
-    {std::cout << "Failed to create GLFW window" << std::endl;
-    glfwTerminate();
-    return -1;}
-    glfwMakeContextCurrent(window);
+  vector<vertex> points = vertices(-10, 10, 0.001f);
+    vertex vertex;
+        GLuint vbo;
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, points.size()* sizeof(vertex), points.data(), GL_STATIC_DRAW);
+
+    GLuint VAO;
+    glGenVertexArrays(1, &VAO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),(void*) 0);
+    glEnableVertexAttribArray(0);
     
-if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-{
-std::cout << "Failed to initialize GLAD" << std::endl;
-return -1;
     
-}
+
+
+
+
+    const char* vertexSource = 
+"#version 330 core\n"
+"in vec3 position;"
+"void main()"
+"{"
+"    gl_Position = vec4(position, 1.0);"
+"}";
+    
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexSource, NULL);
+    glCompileShader(vertexShader);
 
     
     
-    glViewport(0, 0, width, height);
+    // Create and compile the fragment shader
+    const char* fragmentSource = 
+        "#version 330 core\n"
+        "out vec4 outColor;"
+        "void main()"
+        "{"
+        "    outColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);"
+        "}";
+    
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
+    glCompileShader(fragmentShader);
 
-    // unsigned int VBO;
-    // glGenBuffers(1, &VBO);
-    //
-    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    // Link the vertex and fragment shader into a shader program
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+    glUseProgram(shaderProgram);
 
-//----------------------------------------------------------------------------End of setup
-    while(!glfwWindowShouldClose(window))
+    // Specify the layout of the vertex data
+    GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
+    glEnableVertexAttribArray(posAttrib);
+    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)0);
+
+    
+    while(!glfwWindowShouldClose(settup.window))
     {
-        //input
-        processInput(window);
+        //input here
+        processInput(settup.window);
 
-//Rendering commands here
+//Rendering commands here---------------------------------------------------------------------------------------------------------
 
 glClearColor(0.498f, 1.0f, 0.831f, 1.f);
 glClear(GL_COLOR_BUFFER_BIT);
+        
+        glUseProgram(shaderProgram);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindVertexArray(VAO);
 
-
-        DrawGraph();
+        glEnableVertexAttribArray(posAttrib);
+        glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, sizeof(points), nullptr);
+        glDrawArrays(GL_LINE_STRIP, 0, points.size());
 
 //------------------------------------------------------
-    glfwSwapBuffers(window);
+    glfwSwapBuffers(settup.window);
     glfwPollEvents();
     }
 
 //execute simple code here--------------------------------------------------------------
 
-    glDrawArrays(GL_LINE_STRIP,0, 50);
-  
+   
+  CreateDataFile();
     //CreateSpiral();
-    CreatePlane();
+    //CreatePlane();
+
+   // std::cout << vertices[0] << " " << vertices[1] << " " << vertices[2] << " "<< vertices[100]   << std::endl;
+    
     glfwTerminate();
+    CreateDataFile();
     return 0;
 }
 
