@@ -16,7 +16,7 @@ void processInput(GLFWwindow *window);
 // Task 1--------------------------------------------------------------------
 double f(double x)
 {
-    return x *x * x - 3*x*x;
+    return x *x ;
 }
 
 
@@ -126,20 +126,20 @@ int n;
 
 struct vertex 
 {
-   double x, y, z;
+   double x, y, z, w;
 };
-
+ 
 
 vector <vertex> vertices(int start,int end, float distance)
 {
     vector <vertex> vertices;
-    for (int i = start; i < end; i+= distance)
+    for (float i = start; i < end; i += distance)
     {
-        vertex vertex;
-        vertex.x = i;
-        vertex.y = f(i);
-        vertex.z = 0;
-        vertices.push_back(vertex);
+        vertex vertexies;
+        vertexies.x = i ;
+        vertexies.y = f(vertexies.x);
+        vertexies.z = 0;
+        vertices.push_back(vertexies);
     }
     return vertices;
 }
@@ -148,27 +148,6 @@ int main(int argc, char* argv[])
     
 //settup contructor
     Settup settup(2560 / 2, 1440 / 2, "Compulsory1");
-    
-    
-    double a = 0.0f;
-    double b = 100.0f;
-
-  vector<vertex> points = vertices(-10, 10, 0.001f);
-    vertex vertex;
-        GLuint vbo;
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, points.size()* sizeof(vertex), points.data(), GL_STATIC_DRAW);
-
-    GLuint VAO;
-    glGenVertexArrays(1, &VAO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),(void*) 0);
-    glEnableVertexAttribArray(0);
-    
-    
-
-
-
 
     const char* vertexSource = 
 "#version 330 core\n"
@@ -210,6 +189,18 @@ int main(int argc, char* argv[])
     glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)0);
 
     
+    vector<vertex> points = vertices(0, 1, 0.1f);
+    
+    GLuint vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, points.size()* sizeof(vertex), points.data(), GL_STATIC_DRAW);
+
+    GLuint VAO;
+    glGenVertexArrays(1, &VAO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),(void*) 0);
+    glEnableVertexAttribArray(0);
+    
     while(!glfwWindowShouldClose(settup.window))
     {
         //input here
@@ -221,11 +212,9 @@ glClearColor(0.498f, 1.0f, 0.831f, 1.f);
 glClear(GL_COLOR_BUFFER_BIT);
         
         glUseProgram(shaderProgram);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBindVertexArray(VAO);
 
         glEnableVertexAttribArray(posAttrib);
-        glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, sizeof(points), nullptr);
         glDrawArrays(GL_LINE_STRIP, 0, points.size());
 
 //------------------------------------------------------
@@ -240,10 +229,13 @@ glClear(GL_COLOR_BUFFER_BIT);
     //CreateSpiral();
     //CreatePlane();
 
-   // std::cout << vertices[0] << " " << vertices[1] << " " << vertices[2] << " "<< vertices[100]   << std::endl;
+   std::cout <<points.data() << std::endl;
+   std::cout <<points.size() << std::endl;
+    
     
     glfwTerminate();
     CreateDataFile();
+    
     return 0;
 }
 
