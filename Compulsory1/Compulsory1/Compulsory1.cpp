@@ -18,6 +18,7 @@ using namespace std;
 struct vertex 
 {   
    float x, y, z;
+    glm::vec3 color;
 };
 
 struct dataVertex
@@ -29,28 +30,36 @@ struct dataVertex
 
 const char *vertexSource = "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
+    "layout (location = 1) in vec3 aColor;\n"
+    "out vec3 newcolor;\n"
     "void main()\n"
     "{\n"
     "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+    "   newcolor = aColor;\n"  
     "}\0";
+
+
 const char *fragmentSource = "#version 330 core\n"
+    "in vec3 newcolor;\n"
     "out vec4 FragColor;\n"
     "void main()\n"
     "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+    "   FragColor = vec4(newcolor, 1.0f);\n"
     "}\n\0";
+
 
 
 void processInput(GLFWwindow *window);
 
 // Task 1--------------------------------------------------------------------
+
+// funksjonen f(x) for oppgave 1
 double f(double x)
 {
-    return x * x*x - 2 * x*x;
+    return - 2*x*x; 
 }
 
-
-
+// funksjonen f'(x) for oppgave 1
 double fDerivative(double x)
 {
     double h = 0.0001;
@@ -76,7 +85,7 @@ void CreateDataFile()
         double y = f(x);
         double z = 0;
         double yDerivative = fDerivative(x);
-        string color = yDerivative > 0 ? "red" : "blue";
+        string color = yDerivative > 0 ? "blue" : "red";
         file << x << " " << y << " "<< z<< " "<<color << endl;
     }
 
@@ -99,6 +108,14 @@ vector <vertex> vertices(int start,int end, float distance)
         vertex.x = i;
         vertex.y = f(i);
         vertex.z = 0.f;
+        float yDerivative = fDerivative(vertex.x);
+        
+        if (yDerivative > 0)
+        {vertex.color = glm::vec3(0.0f, 1.0f, 0.0f);}
+        else
+        {vertex.color = glm::vec3(1.0f, 0.0f, 0.0f);}
+        
+        
         vertices.push_back(vertex);
     }
     return vertices;
@@ -113,6 +130,8 @@ float y(float t)
 {
     return sin(t);
 }
+
+
 float z(float t)
 {
     return t ;
@@ -137,7 +156,10 @@ void CreateSpiral()
         float x1 = x(t);
         float y1 = y(t);
         float z1 = z(t);
-        file << x1 << " " << y1 << " " << z1 << endl;
+        float yDerivative = fDerivative(x1);
+        string color = yDerivative > 0 ? "blue" : "red";
+        
+        file << x1 << " " << y1 << " " << z1  << " " << color<< endl;
     }
     
         file.close();
@@ -148,93 +170,72 @@ void DrawSpiral(GLuint shaderProgram, GLuint VAO, vector<vertex> points)
     glBindVertexArray(VAO);
     glDrawArrays(GL_LINE_STRIP, 0, points.size());
 }
-// Task 3--------------------------------------------------------------------
-double g(double x, double y) {
-    return x * x + y * y ;
-}
-
-vector<dataVertex> readfromfile()
-{
-    vector<dataVertex> points;
-    ifstream file("Data.txt");
-
-    if (!file.is_open())
-    {
-        cout << "Error opening file";
-        exit(-1);
-    }
-    
-        string line;
-
-    getline(file, line);
-
-    while (getline(file, line))
-    {
-        stringstream ss(line);
-        dataVertex dataVertex;
-        ss >> dataVertex.x >> dataVertex.y >> dataVertex.z >> dataVertex.color;
-        points.push_back(dataVertex);
-    }
-    
-        file.close();
-    return points;
-}
-
-void CreatePlane()
-{
-    std::ofstream file("Plane.txt");
-
-    double a = -10.0f;
-    double b = 10.0f;
-    
-    int n = 100;
-    
-    for (double i = -10; i <= n; i ++) {
-        double x = g(a, b) * i / 10;
-        double y = i / 10;
-        
-        double z =+ 0.5;
-        file << x << " " << y << " " << z << endl;
-    }
-
-    file.close();
-}
 
 vector<vertex> spiralVertices()
 {
     vector<vertex> vertices;
-    double a = 0.0f;
-    double b = 10.0f;
-    
-    int n = 100;
-    
-    double h = (b - a) /n;
     float angle;
-    int numberOfSpirals = 24;
     float distance = 1.f;
     
     for (angle = 0.5; angle  <= (360); angle += distance)
     {
         vertex vertex;
-        double t = b - angle;
+        
         vertex.x = angle * 0.01 ;
         vertex.y = y(angle / M_PI) * 0.1; 
         vertex.z =x(angle /M_PI )* 0.1 ;
+        float yDerivative = fDerivative(vertex.y);
+        
+        if (yDerivative > 0)
+        {vertex.color = glm::vec3(0.0f, 1.0f, 0.0f);}
+        else
+        {vertex.color = glm::vec3(1.0f, 0.0f, 0.0f);}
+        
         vertices.push_back(vertex);
     }
     return vertices;
 }
 
+// Task 3--------------------------------------------------------------------
+double g(double x, double y) {
+    return x * x + y * y ;
+}
 
+
+
+void CreatePlane()
+{
+    std::ofstream file("Plane.txt");
+    
+    int n = 10;
+    
+    for (float i = -10; i <= n; i ++) {
+        for (int j = -10; j < n; j ++)
+        {
+            int x = i;
+            int y = j;
+
+            g(i, j);
+
+            file<< x << " " << y << " " << g(i, j) << endl;
+        }
+    }
+
+    file.close();
+}
 
 int main()
 {
+
+    //change the bool to true to run the spiral or to run the graph. If it is true run the spiral, if it is false run the graph
+    
+    bool isSpiral = true;
     
 //settup contructor
     Settup settup(2560 / 2, 1440 / 2, "Compulsory1");
     
 
-    glLineWidth(3);
+    glLineWidth(6);
   vector<vertex> points = vertices(-10, 10, 0.01f);
     vector<vertex> points2 = spiralVertices();
     
@@ -269,25 +270,40 @@ int main()
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, points2.size()* sizeof(vertex), points2.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    if (isSpiral)
+    glBufferData(GL_ARRAY_BUFFER, points2.size()* sizeof(vertex), points2.data(), GL_STATIC_DRAW);
+    else
+    {
+        glBufferData(GL_ARRAY_BUFFER, points.size()* sizeof(vertex), points.data(), GL_STATIC_DRAW);
+    }
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex) ,(void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0); 
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 1);
+    glBindVertexArray(1); 
     
     while(!glfwWindowShouldClose(settup.window))
     {
         //input here
         processInput(settup.window);
 
-//Rendering commands here---------------------------------------------------------------------------------------------------------
+//Rendering commands here----------------------------------------------------------------------------------------------------------------------------
 
 glClearColor(0.498f, 1.0f, 0.831f, 1.f);
 glClear(GL_COLOR_BUFFER_BIT);
-        //DrawGraph(shaderProgram, VAO, points); //Task 1
+        
+        
+        if (!isSpiral)
+        DrawGraph(shaderProgram, VAO, points); //Task 1
+
+        if (isSpiral)
         DrawSpiral(shaderProgram, VAO,points2); //Task 2
 
 //------------------------------------------------------
@@ -295,11 +311,16 @@ glClear(GL_COLOR_BUFFER_BIT);
     glfwPollEvents();
     }
 
-//execute simple code here--------------------------------------------------------------
+//execute simple code here-------------------------------------------------------------------------------------------------------------------------------------
 
-   
-  CreateDataFile();
+
+    //To generate the txt file for the task 1, uncomment the line below
+    // CreateDataFile();
+
+    //To generate the txt file for the task 2, uncomment the line below
     //CreateSpiral();
+
+    //To generate the txt file for the task 3, uncomment the line below
     //CreatePlane();
 
     
