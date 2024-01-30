@@ -10,6 +10,8 @@ public:
     GLFWwindow* window;
     
     Settup(int width, int height, const char* windowTitle){
+
+        
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);

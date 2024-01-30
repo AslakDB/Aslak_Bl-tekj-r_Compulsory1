@@ -1,22 +1,52 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
+
+#define _USE_MATH_DEFINES
+
 #include <cmath>
+#include <iostream>
+#include <sstream>
 #include <glm/glm.hpp>
 #include <fstream>
 #include <gl/GL.h>
 #include <vector>
 #include "Shaders.h"
 #include "OpenGlSettup.h"
+#include "glm/ext/scalar_constants.hpp"
 
 using namespace std;
+struct vertex 
+{   
+   float x, y, z;
+};
+
+struct dataVertex
+{
+    float x, y, z;
+    string color;
+};
+
+
+const char *vertexSource = "#version 330 core\n"
+    "layout (location = 0) in vec3 aPos;\n"
+    "void main()\n"
+    "{\n"
+    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+    "}\0";
+const char *fragmentSource = "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "void main()\n"
+    "{\n"
+    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+    "}\n\0";
+
 
 void processInput(GLFWwindow *window);
 
 // Task 1--------------------------------------------------------------------
 double f(double x)
 {
-    return x *x * x - 3*x*x;
+    return x * x*x - 2 * x*x;
 }
 
 
@@ -40,45 +70,62 @@ void CreateDataFile()
 
     file << n + 1 << endl;
 
-    for (int i = 0; i <= n; ++i)
+    for (int i = 0; i <= n; i++)
     {
         double x = a + i * h;
         double y = f(x);
+        double z = 0;
         double yDerivative = fDerivative(x);
         string color = yDerivative > 0 ? "red" : "blue";
-        file << x << " " << y << " " << color << endl;
+        file << x << " " << y << " "<< z<< " "<<color << endl;
     }
 
     file.close();
 }
-void DrawGraph(GLuint shaderProgram, GLuint vbo, GLuint VAO, GLint posAttrib)
+void DrawGraph(GLuint shaderProgram, GLuint VAO, vector<vertex> points)
 {
-   
+    glUseProgram(shaderProgram);
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_LINE_STRIP, 0, points.size());
 }
 
+
+vector <vertex> vertices(int start,int end, float distance)
+{
+    vector <vertex> vertices;
+    for (float i = start; i < end; i+= distance)
+    {
+        vertex vertex;
+        vertex.x = i;
+        vertex.y = f(i);
+        vertex.z = 0.f;
+        vertices.push_back(vertex);
+    }
+    return vertices;
+}
 // Task 2--------------------------------------------------------------------
 
-double x(double t)
+float x(float t)
 {
     return cos(t);
 }
-double y(double t)
+float y(float t)
 {
     return sin(t);
 }
-double z(double t)
+float z(float t)
 {
-    return t;
+    return t ;
 }
 
 void CreateSpiral()
 {
-    double a = 0.0f;
-    double b = 10.0f;
+    float a = 0.0f;
+    float b = 10.0f;
     
     int n = 100;
     
-    double h = (b - a) / n;
+    float h = (b - a) / n;
 
     ofstream file("spiral.txt");
 
@@ -86,22 +133,51 @@ void CreateSpiral()
 
     for (int i = 0; i <= n; ++i)
     {
-        double t = a + i * h;
-        double x1 = x(t);
-        double y1 = y(t);
-        double z1 = z(t);
+        float t = a + i * h;
+        float x1 = x(t);
+        float y1 = y(t);
+        float z1 = z(t);
         file << x1 << " " << y1 << " " << z1 << endl;
     }
     
         file.close();
 }
-void DrawSpiral()
+void DrawSpiral(GLuint shaderProgram, GLuint VAO, vector<vertex> points)
 {
-    
+    glUseProgram(shaderProgram);
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_LINE_STRIP, 0, points.size());
 }
 // Task 3--------------------------------------------------------------------
 double g(double x, double y) {
     return x * x + y * y ;
+}
+
+vector<dataVertex> readfromfile()
+{
+    vector<dataVertex> points;
+    ifstream file("Data.txt");
+
+    if (!file.is_open())
+    {
+        cout << "Error opening file";
+        exit(-1);
+    }
+    
+        string line;
+
+    getline(file, line);
+
+    while (getline(file, line))
+    {
+        stringstream ss(line);
+        dataVertex dataVertex;
+        ss >> dataVertex.x >> dataVertex.y >> dataVertex.z >> dataVertex.color;
+        points.push_back(dataVertex);
+    }
+    
+        file.close();
+    return points;
 }
 
 void CreatePlane()
@@ -116,67 +192,51 @@ void CreatePlane()
     for (double i = -10; i <= n; i ++) {
         double x = g(a, b) * i / 10;
         double y = i / 10;
-        double z = 0;
+        
+        double z =+ 0.5;
         file << x << " " << y << " " << z << endl;
     }
 
     file.close();
 }
-int n;
 
-struct vertex 
+vector<vertex> spiralVertices()
 {
-   double x, y, z;
-};
-
-
-vector <vertex> vertices(int start,int end, float distance)
-{
-    vector <vertex> vertices;
-    for (int i = start; i < end; i+= distance)
+    vector<vertex> vertices;
+    double a = 0.0f;
+    double b = 10.0f;
+    
+    int n = 100;
+    
+    double h = (b - a) /n;
+    float angle;
+    int numberOfSpirals = 24;
+    float distance = 1.f;
+    
+    for (angle = 0.5; angle  <= (360); angle += distance)
     {
         vertex vertex;
-        vertex.x = i;
-        vertex.y = f(i);
-        vertex.z = 0;
+        double t = b - angle;
+        vertex.x = angle * 0.01 ;
+        vertex.y = y(angle / M_PI) * 0.1; 
+        vertex.z =x(angle /M_PI )* 0.1 ;
         vertices.push_back(vertex);
     }
     return vertices;
 }
-int main(int argc, char* argv[])
+
+
+
+int main()
 {
     
 //settup contructor
     Settup settup(2560 / 2, 1440 / 2, "Compulsory1");
     
-    
-    double a = 0.0f;
-    double b = 100.0f;
 
-  vector<vertex> points = vertices(-10, 10, 0.001f);
-    vertex vertex;
-        GLuint vbo;
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, points.size()* sizeof(vertex), points.data(), GL_STATIC_DRAW);
-
-    GLuint VAO;
-    glGenVertexArrays(1, &VAO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),(void*) 0);
-    glEnableVertexAttribArray(0);
-    
-    
-
-
-
-
-    const char* vertexSource = 
-"#version 330 core\n"
-"in vec3 position;"
-"void main()"
-"{"
-"    gl_Position = vec4(position, 1.0);"
-"}";
+    glLineWidth(3);
+  vector<vertex> points = vertices(-10, 10, 0.01f);
+    vector<vertex> points2 = spiralVertices();
     
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexSource, NULL);
@@ -185,14 +245,7 @@ int main(int argc, char* argv[])
     
     
     // Create and compile the fragment shader
-    const char* fragmentSource = 
-        "#version 330 core\n"
-        "out vec4 outColor;"
-        "void main()"
-        "{"
-        "    outColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);"
-        "}";
-    
+ 
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
     glCompileShader(fragmentShader);
@@ -205,10 +258,25 @@ int main(int argc, char* argv[])
     glUseProgram(shaderProgram);
 
     // Specify the layout of the vertex data
-    GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
-    glEnableVertexAttribArray(posAttrib);
-    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)0);
+    // GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
+    // glEnableVertexAttribArray(posAttrib);
+    // glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), 0);
+    
+    GLuint VBO, VAO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+    glBindVertexArray(VAO);
 
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, points2.size()* sizeof(vertex), points2.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0); 
     
     while(!glfwWindowShouldClose(settup.window))
     {
@@ -219,14 +287,8 @@ int main(int argc, char* argv[])
 
 glClearColor(0.498f, 1.0f, 0.831f, 1.f);
 glClear(GL_COLOR_BUFFER_BIT);
-        
-        glUseProgram(shaderProgram);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBindVertexArray(VAO);
-
-        glEnableVertexAttribArray(posAttrib);
-        glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, sizeof(points), nullptr);
-        glDrawArrays(GL_LINE_STRIP, 0, points.size());
+        //DrawGraph(shaderProgram, VAO, points); //Task 1
+        DrawSpiral(shaderProgram, VAO,points2); //Task 2
 
 //------------------------------------------------------
     glfwSwapBuffers(settup.window);
@@ -240,7 +302,11 @@ glClear(GL_COLOR_BUFFER_BIT);
     //CreateSpiral();
     //CreatePlane();
 
-   // std::cout << vertices[0] << " " << vertices[1] << " " << vertices[2] << " "<< vertices[100]   << std::endl;
+    
+
+   
+
+    
     
     glfwTerminate();
     CreateDataFile();
