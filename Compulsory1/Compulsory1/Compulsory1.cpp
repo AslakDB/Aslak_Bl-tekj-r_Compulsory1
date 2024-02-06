@@ -3,229 +3,80 @@
 
 #define _USE_MATH_DEFINES
 
-#include <cmath>
-#include <iostream>
-#include <sstream>
-#include <glm/glm.hpp>
-#include <fstream>
+
 #include <gl/GL.h>
 #include <vector>
-#include "Shaders.h"
+
 #include "OpenGlSettup.h"
 #include "glm/ext/scalar_constants.hpp"
 
+#include "Structs.h"
+
+#include "Task1.h"
+#include "Task2.h"
+#include "Task3.h"
+
+
+
 using namespace std;
-struct vertex 
-{   
-   float x, y, z;
-    glm::vec3 color;
-};
 
-struct dataVertex
+
+
+std::string readShader(const std::string& filename)
 {
-    float x, y, z;
-    string color;
-};
-
-
-const char *vertexSource = "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "layout (location = 1) in vec3 aColor;\n"
-    "out vec3 newcolor;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "   newcolor = aColor;\n"  
-    "}\0";
-
-
-const char *fragmentSource = "#version 330 core\n"
-    "in vec3 newcolor;\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = vec4(newcolor, 1.0f);\n"
-    "}\n\0";
+    std::ifstream file(filename);
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
 
 
 
 void processInput(GLFWwindow *window);
 
-// Task 1--------------------------------------------------------------------
 
-// funksjonen f(x) for oppgave 1
-double f(double x)
-{
-    return - 2*x*x; 
-}
+// TriangleSurface::TriangleSurface()
+// {
+//     vertex v0{ 0,0,0, glm::vec3 (1.0f, 0.0f, 0.0f) };
+//     vertex v1{ 1,0,0, glm::vec3 (0.0f, 1.0f, 0.0f) };
+//     vertex v2{ 0,1,0, glm::vec3 (0.0f, 0.0f, 1.0f) };
+//     mVertices.push_back(v0);
+//     mVertices.push_back(v1);
+//     mVertices.push_back(v2);
+// }
 
-// funksjonen f'(x) for oppgave 1
-double fDerivative(double x)
-{
-    double h = 0.0001;
-    return (f(x + h) - f(x)) / h;
-}
-void CreateDataFile()
-{
-    // defisjonsmengden for funksjonen f(x)
-    double a = 0.0f;
-    double b = 10.0f;
+
+// std::string vertexShaders = readShader("VertexShader.vert");
+// std::string fragmentShaders = readShader("FragmentShader.frag");
+
+
+// const char *vertexSource = vertexShaders.c_str();
+// const char *fragmentSource = fragmentShaders.c_str();
+
+const char *vertexSource =
+    "#version 330 core\n"
+    "layout(location = 0) in vec3 aPos;\n"
+    "layout(location = 1) in vec3 aColor;\n"
+    "out vec3 ourColor;\n"
+    "void main()\n"
+    "{\n"
+    "gl_Position = vec4(aPos, 1.0);\n"
+    "ourColor = aColor;\n"
+    "}\n";
     
-    int n = 100;
-    
-    double h = (b - a) / n;
+const char *fragmentSource =
+    "#version 330 core\n"
+    "in vec3 ourColor;\n"
+    "out vec4 color;\n"
+    "void main()\n"
+    "{\n"
+    "color = vec4(ourColor, 1.0f);\n"
+    "}\n";
 
-    ofstream file("data.txt");
-
-    file << n + 1 << endl;
-
-    for (int i = 0; i <= n; i++)
-    {
-        double x = a + i * h;
-        double y = f(x);
-        double z = 0;
-        double yDerivative = fDerivative(x);
-        string color = yDerivative > 0 ? "blue" : "red";
-        file << x << " " << y << " "<< z<< " "<<color << endl;
-    }
-
-    file.close();
-}
-void DrawGraph(GLuint shaderProgram, GLuint VAO, vector<vertex> points)
-{
-    glUseProgram(shaderProgram);
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_LINE_STRIP, 0, points.size());
-}
-
-
-vector <vertex> vertices(int start,int end, float distance)
-{
-    vector <vertex> vertices;
-    for (float i = start; i < end; i+= distance)
-    {
-        vertex vertex;
-        vertex.x = i;
-        vertex.y = f(i);
-        vertex.z = 0.f;
-        float yDerivative = fDerivative(vertex.x);
-        
-        if (yDerivative > 0)
-        {vertex.color = glm::vec3(0.0f, 1.0f, 0.0f);}
-        else
-        {vertex.color = glm::vec3(1.0f, 0.0f, 0.0f);}
-        
-        
-        vertices.push_back(vertex);
-    }
-    return vertices;
-}
-// Task 2--------------------------------------------------------------------
-
-float x(float t)
-{
-    return cos(t);
-}
-float y(float t)
-{
-    return sin(t);
-}
-
-
-float z(float t)
-{
-    return t ;
-}
-
-void CreateSpiral()
-{
-    float a = 0.0f;
-    float b = 10.0f;
-    
-    int n = 100;
-    
-    float h = (b - a) / n;
-
-    ofstream file("spiral.txt");
-
-    file << n + 1 << endl;
-
-    for (int i = 0; i <= n; ++i)
-    {
-        float t = a + i * h;
-        float x1 = x(t);
-        float y1 = y(t);
-        float z1 = z(t);
-        float yDerivative = fDerivative(x1);
-        string color = yDerivative > 0 ? "blue" : "red";
-        
-        file << x1 << " " << y1 << " " << z1  << " " << color<< endl;
-    }
-    
-        file.close();
-}
-void DrawSpiral(GLuint shaderProgram, GLuint VAO, vector<vertex> points)
-{
-    glUseProgram(shaderProgram);
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_LINE_STRIP, 0, points.size());
-}
-
-vector<vertex> spiralVertices()
-{
-    vector<vertex> vertices;
-    float angle;
-    float distance = 1.f;
-    
-    for (angle = 0.5; angle  <= (360); angle += distance)
-    {
-        vertex vertex;
-        
-        vertex.x = angle * 0.01 ;
-        vertex.y = y(angle / M_PI) * 0.1; 
-        vertex.z =x(angle /M_PI )* 0.1 ;
-        float yDerivative = fDerivative(vertex.y);
-        
-        if (yDerivative > 0)
-        {vertex.color = glm::vec3(0.0f, 1.0f, 0.0f);}
-        else
-        {vertex.color = glm::vec3(1.0f, 0.0f, 0.0f);}
-        
-        vertices.push_back(vertex);
-    }
-    return vertices;
-}
-
-// Task 3--------------------------------------------------------------------
-double g(double x, double y) {
-    return x * x + y * y ;
-}
-
-
-
-void CreatePlane()
-{
-    std::ofstream file("Plane.txt");
-    
-    int n = 10;
-    
-    for (float i = -10; i <= n; i ++) {
-        for (int j = -10; j < n; j ++)
-        {
-            int x = i;
-            int y = j;
-
-            g(i, j);
-
-            file<< x << " " << y << " " << g(i, j) << endl;
-        }
-    }
-
-    file.close();
-}
 
 int main()
 {
+   
 
     //change the bool to true to run the spiral or to run the graph. If it is true run the spiral, if it is false run the graph
     
@@ -258,6 +109,7 @@ int main()
     glLinkProgram(shaderProgram);
     glUseProgram(shaderProgram);
 
+    
     // Specify the layout of the vertex data
     // GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
     // glEnableVertexAttribArray(posAttrib);
@@ -274,11 +126,10 @@ int main()
     if (isSpiral)
     glBufferData(GL_ARRAY_BUFFER, points2.size()* sizeof(vertex), points2.data(), GL_STATIC_DRAW);
     else
-    {
-        glBufferData(GL_ARRAY_BUFFER, points.size()* sizeof(vertex), points.data(), GL_STATIC_DRAW);
-    }
+    glBufferData(GL_ARRAY_BUFFER, points.size()* sizeof(vertex), points.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)0);
+    
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex) ,(void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
@@ -324,16 +175,10 @@ glClear(GL_COLOR_BUFFER_BIT);
     //CreatePlane();
 
     
-
-   
-
-    
-    
     glfwTerminate();
     CreateDataFile();
     return 0;
 }
-
 
 
 void processInput(GLFWwindow *window)

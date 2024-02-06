@@ -9,7 +9,7 @@ class Settup
 public:
     GLFWwindow* window;
     
-    Settup(int width, int height, const char* windowTitle){
+    Settup(int width, int height, const char* windowTitle){ 
 
         
     glfwInit();

@@ -585,7 +585,10 @@
     <ClInclude Include="Dependencies\Includes\glm\vector_relational.hpp" />
     <ClInclude Include="Dependencies\Includes\KHR\khrplatform.h" />
     <ClInclude Include="OpenGlSettup.h" />
-    <ClInclude Include="Shaders.h" />
+    <ClInclude Include="Structs.h" />
+    <ClInclude Include="Task1.h" />
+    <ClInclude Include="Task2.h" />
+    <ClInclude Include="Task3.h" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Dependencies\Includes\glm\CMakeLists.txt" />
@@ -593,6 +596,8 @@
     <Content Include="Dependencies\Libs\glfw3.lib" />
     <Content Include="Dependencies\Libs\glfw3dll.lib" />
     <Content Include="Dependencies\Libs\glfw3_mt.lib" />
+    <Content Include="FragmentShader.frag" />
+    <Content Include="VertexShader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
